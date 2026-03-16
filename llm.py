@@ -35,10 +35,26 @@ def clean_text(text: str) -> str:
 # =====================================
 # Generate Response
 # =====================================
-def generate_response(query: str, language: str = "en-IN",grade:str="class 8",subject:str="computer",mode:str="explain") -> str:
-
+def generate_response(
+    query: str,
+    language: str,
+    grade: str,
+    subject: str,
+    mode: str ="explain"
+) -> str:
     if not query or not query.strip():
         return "Please ask a valid question."
+
+    # 🔥 Mode-based limits (prompt same rahega)
+    if mode == "voice":
+        max_words = 40        # 15–25 sec video
+        max_tokens = 120
+    elif mode == "explain":
+        max_words = 100
+        max_tokens = 220
+    else:
+        max_words = 200
+        max_tokens = 300
 
     prompt = f"""
     You are a friendly and professional Indian school teacher.
@@ -98,46 +114,22 @@ def generate_response(query: str, language: str = "en-IN",grade:str="class 8",su
     {query}
     """
 
-    max_retries = 3
-    wait_time = 2
+    response = model.generate_content(
+        prompt,
+        generation_config=genai.types.GenerationConfig(
+            temperature=0.4,
+            max_output_tokens=max_tokens
+        )
+    )
 
-    for attempt in range(max_retries):
-        try:
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.4,
-                    max_output_tokens=250
-                )
-            )
+    if not response or not hasattr(response, "text") or not response.text:
+        return "AI is BusY Right Now please Try after some time."
 
-            # Safe text extraction
-            if not response:
-                print("⚠ Gemini returned None response")
-                return "No response generated."
+    text = clean_text(response.text)
 
-            if hasattr(response, "text") and response.text:
-                text = response.text
-            else:
-                print("⚠ Gemini response has no text field")
-                return "No response generated."
+    # Strict word trimming
+    words = text.split()
+    if len(words) > max_words:
+        text = " ".join(words[:max_words])
 
-            text = clean_text(text)
-
-            # Word limit for video safety
-            words = text.split()
-            if len(words) > MAX_WORDS:
-                text = " ".join(words[:MAX_WORDS])
-
-            return text
-
-        except Exception as e:
-            print(" Gemini ERROR (attempt", attempt + 1, "):", str(e))
-
-            if attempt < max_retries - 1:
-                time.sleep(wait_time)
-                wait_time *= 2
-            else:
-                return "AI service is temporarily unavailable."
-
-    return "AI is busy right now."
+    return text

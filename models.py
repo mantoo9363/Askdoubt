@@ -1,12 +1,12 @@
+
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 
 
-   # start  new code
-
-
-
+# =========================
+# ENUMS
+# =========================
 
 class InputType(str, Enum):
     TEXT = "text"
@@ -25,28 +25,27 @@ class VideoStatus(str, Enum):
 
 
 # =========================
-# USER QUERY MODEL (UPDATED)
+# USER QUERY MODEL
 # =========================
+
 class UserQuery(BaseModel):
+
+    user_id: Optional[str] = None
+
     query: str
     input_type: InputType = InputType.TEXT
-    
-    # Language default 'HI' rakhein taaki Indian English accent aaye
-    language: Language = Language.HI 
 
-    # --- HEYGEN SETTINGS ---
-    # Default Voice: Solemn Sachin (Hindi/Indian English)
-    # Agar frontend se voice_id nahi aayi, to ye use hogi (No American Accent)
-    voice_id: Optional[str] = None #"2fc30cb6995f458ca73ae87e3a74d644" 
-    
-    # Default Avatar: Joshua
-    avatar_id: Optional[str] = None #"Joshua-incasual-20220826"
+    # Default Hindi (Indian English accent)
+    language: Language = Language.HI
 
-    # --- NEW FIELD FOR TEMPLATE VIDEO ---
-    # Agar user ye URL bhejega, to 'Template Method' call hoga
-    logo_url: Optional[str] = None  
+    # HEYGEN SETTINGS
+    voice_id: Optional[str] = None
+    avatar_id: Optional[str] = None
 
-    # Education metadata (OPTIONAL)
+    # Template logo
+    logo_url: Optional[str] = None
+
+    # Education metadata
     class_name: Optional[str] = None
     subject_name: Optional[str] = None
     chapter_name: Optional[str] = None
@@ -55,8 +54,12 @@ class UserQuery(BaseModel):
 # =========================
 # API RESPONSE MODEL
 # =========================
+
 class Response(BaseModel):
+
     text: str
+
+    user_id: Optional[str] = None
 
     video_url: Optional[str] = None
     video_id: Optional[str] = None
@@ -77,7 +80,9 @@ class Response(BaseModel):
 # =========================
 # FEEDBACK MODEL
 # =========================
+
 class Feedback(BaseModel):
+
     query_id: int
     helpful: bool
     comment: Optional[str] = None
@@ -86,7 +91,9 @@ class Feedback(BaseModel):
 # =========================
 # HEYGEN REQUEST MODEL
 # =========================
+
 class HeygenRequest(BaseModel):
+
     avatar_id: str
     voice_id: str
     script: str
@@ -96,4 +103,23 @@ class HeygenRequest(BaseModel):
     language: Language = Language.EN
 
 
-   #end new code
+# =========================
+# RAZORPAY PAYMENT MODELS
+# =========================
+
+class CreateOrder(BaseModel):
+
+    user_id: str
+    amount: int
+    credits: int
+
+
+class VerifyPayment(BaseModel):
+
+    user_id: str
+    amount: int
+    credits: int
+
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str

@@ -1,3 +1,4 @@
+
 # database.py
 import sqlite3
 from contextlib import contextmanager
@@ -29,17 +30,16 @@ def is_not_null(conn, table: str, column: str) -> bool:
 
 
 def rebuild_queries_table(conn):
-    """
-    Rebuild table to remove NOT NULL constraints safely
-    """
+
     conn.execute("ALTER TABLE queriesnew RENAME TO queriesnew_old")
 
     conn.execute("""
     CREATE TABLE queriesnew (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
         query_text TEXT NOT NULL,
         response_text TEXT NOT NULL,
-        video_url TEXT,          --  NULL allowed
+        video_url TEXT,
         language TEXT,
         class_name TEXT,
         subject_name TEXT,
@@ -67,11 +67,15 @@ def rebuild_queries_table(conn):
 
 
 def init_db():
+
     with get_db() as conn:
-        # 1 Create table if not exists (safe schema)
+
+        # 1 Queries table
+
         conn.execute("""
         CREATE TABLE IF NOT EXISTS queriesnew (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
             query_text TEXT NOT NULL,
             response_text TEXT NOT NULL,
             video_url TEXT,
@@ -83,9 +87,51 @@ def init_db():
             feedback TEXT
         )
         """)
+
+        # 2 Users table
+
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            credits INTEGER DEFAULT 10,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # 3 Credits wallet table
+
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS credits (
+            user_id TEXT PRIMARY KEY,
+            totalcredits INTEGER DEFAULT 0,
+            usedcredits INTEGER DEFAULT 0,
+            balance INTEGER DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        # 4 Payments history table
+
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            credits INTEGER,
+            usedcredits INTEGER,
+            balance INTEGER,
+            payment_id TEXT,
+            amount INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
         conn.commit()
 
-        # 2 Auto-add missing columns (old DB support)
+        # Auto add columns if missing
+
+        if not column_exists(conn, "queriesnew", "user_id"):
+            conn.execute("ALTER TABLE queriesnew ADD COLUMN user_id TEXT")
+
         if not column_exists(conn, "queriesnew", "video_id"):
             conn.execute("ALTER TABLE queriesnew ADD COLUMN video_id TEXT")
 
@@ -94,7 +140,8 @@ def init_db():
 
         conn.commit()
 
-        # 3 Fix OLD DB where video_url was NOT NULL
+        # Fix old DB constraint
+
         if is_not_null(conn, "queriesnew", "video_url"):
-            print("⚠️ Fixing NOT NULL constraint on video_url")
+            print("Fixing NOT NULL constraint on video_url")
             rebuild_queries_table(conn)

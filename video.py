@@ -166,9 +166,9 @@ def get_video_status(video_id: str):
 # =========================================================
 def poll_video(video_id: str) -> str | None:
 
-    for attempt in range(300):
-        result = get_video_status(video_id)
+    for attempt in range(60):  # max ~2 min
 
+        result = get_video_status(video_id)
         status = result.get("status")
         video_url = result.get("video_url")
 
@@ -182,7 +182,7 @@ def poll_video(video_id: str) -> str | None:
             print(" Video failed")
             return None
 
-        time.sleep(3)
+        time.sleep(2)
 
     print(" Poll timeout")
     return None
